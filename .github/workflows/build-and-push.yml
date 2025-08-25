@@ -2,8 +2,8 @@ name: Build and Push ComfyUI Worker
 
 on:
   push:
-    branches: [ main ]      # change to your default branch if not 'main'
-  workflow_dispatch:        # lets you run it manually from the Actions tab
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,8 +12,18 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # Free lots of disk on the GitHub runner
+      # Show what files GitHub actually checked out
+      - name: Show workspace files
+        run: |
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          ls -la "$GITHUB_WORKSPACE"
+          echo "---- repo root/custom_nodes ----"
+          ls -la "$GITHUB_WORKSPACE/custom_nodes" || true
+
+      # Free disk space (optional but helpful later)
       - name: Maximize build space
         uses: easimon/maximize-build-space@v10
         with:
@@ -38,14 +48,20 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # sanity check: make sure Dockerfile exists at the exact path we will use
+      - name: Verify Dockerfile exists
+        run: |
+          test -f "$GITHUB_WORKSPACE/Dockerfile" || (echo "Dockerfile missing!" && exit 1)
+          wc -c "$GITHUB_WORKSPACE/Dockerfile"
+          head -20 "$GITHUB_WORKSPACE/Dockerfile"
+
       - name: Build and Push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./Dockerfile
+          context: ${{ github.workspace }}
+          file: ${{ github.workspace }}/Dockerfile
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/comfyui-custom:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
