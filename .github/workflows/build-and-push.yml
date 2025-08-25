@@ -1,21 +1,25 @@
-name: Build and Push ComfyUI Worker
-
-on:
-  push:
-    branches: [ main ]   # runs automatically when you push to main branch
-  workflow_dispatch:      # lets you trigger manually from GitHub UI
-
-env:
-  IMAGE_NAME: comfyui-custom
-  IMAGE_TAG: v1
-
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      # BIG cleanup (gives you a lot more disk)
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v10
+        with:
+          root-reserve-mb: 2048
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+
+      - name: Extra cleanup
+        run: |
+          sudo rm -rf /opt/hostedtoolcache /usr/local/lib/android || true
+          docker system prune -af || true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -32,5 +36,6 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/comfyui-custom:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
