@@ -1,11 +1,19 @@
+name: Build and Push ComfyUI Worker
+
+on:
+  push:
+    branches: [ main ]      # change to your default branch if not 'main'
+  workflow_dispatch:        # lets you run it manually from the Actions tab
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # BIG cleanup (gives you a lot more disk)
+      # Free lots of disk on the GitHub runner
       - name: Maximize build space
         uses: easimon/maximize-build-space@v10
         with:
