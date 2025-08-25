@@ -1,22 +1,32 @@
+# Lightweight base that already includes ComfyUI + RunPod serverless worker
 FROM runpod/worker-comfyui:5.4.0-base
+
+# Work inside the ComfyUI folder used by the worker
 WORKDIR /workspace/ComfyUI
 
-# ---- Custom nodes (examples; replace with YOURS) ----
-RUN --mount=type=cache,target=/root/.cache \
-    git clone --depth=1 https://github.com/Vanillaua/ComfyUI-BiRefNet custom_nodes/BiRefNet && \
-    git clone --depth=1 https://github.com/cubiq/ComfyUI_IPAdapter_plus custom_nodes/IPAdapterPlus && \
-    git clone --depth=1 https://github.com/ltdrdata/ComfyUI-Impact-Pack custom_nodes/ImpactPack && \
-    git clone --depth=1 https://github.com/lllyasviel/IC-Light custom_nodes/IC-Light && \
-    git clone --depth=1 https://github.com/GeorgLegato/ComfyUI-IC-Light-Integration custom_nodes/ICLightIntegration
+# ---- Copy your already-working custom nodes from the repo ----
+# Your repo layout should be:
+#   /Dockerfile
+#   /custom_nodes/<node folders ...>
+COPY custom_nodes/ /workspace/ComfyUI/custom_nodes/
 
-# If some nodes require extra Python deps, add them here:
-# RUN pip install <package1> <package2>
+# ---- (Optional) clean junk that sometimes gets committed ----
+RUN find /workspace/ComfyUI/custom_nodes -name "__pycache__" -type d -exec rm -rf {} + \
+ || true
 
-# ---- Models ----
-# Prefer NOT to bake large models. Instead, mount a RunPod Network Volume
-# to /workspace/ComfyUI/models when you create the endpoint.
-RUN mkdir -p models/checkpoints models/unet models/rembg models/ipadapter
-# If you *must* bake small/critical files, add COPY lines (keep sizes small):
-# COPY models/checkpoints/epicphotogasm_ultimateFidelity.safetensors models/checkpoints/
-# COPY models/unet/iclight_sd15_fc.safetensors models/unet/
-# COPY models/rembg/BiRefNet.safetensors models/rembg/
+# ---- Install any Python deps the nodes declare (if present) ----
+# This auto-discovers requirements*.txt files within your node folders and installs them.
+RUN set -e; \
+    echo "Scanning for requirements files in custom_nodes..."; \
+    find /workspace/ComfyUI/custom_nodes -maxdepth 2 -iname "requirements*.txt" -print \
+      -exec pip install --no-cache-dir -r {} \; || true; \
+    echo "Custom nodes copied and (if any) requirements installed."
+
+# ---- Create model directories (we'll MOUNT a RunPod Network Volume here) ----
+# Keep filenames EXACTLY as your Export(API) workflow expects.
+RUN mkdir -p /workspace/ComfyUI/models/checkpoints \
+             /workspace/ComfyUI/models/unet \
+             /workspace/ComfyUI/models/rembg \
+             /workspace/ComfyUI/models/ipadapter
+
+# Nothing else to do: the base image already exposes /run and /runsync for Serverless.
