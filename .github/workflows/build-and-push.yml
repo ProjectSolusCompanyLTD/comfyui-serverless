@@ -1,3 +1,10 @@
+name: Build and Push ComfyUI Worker
+
+on:
+  push:
+    branches: [ main ]   # runs whenever you push to main
+  workflow_dispatch:      # allows you to trigger manually
+
 jobs:
   build:
     runs-on: ubuntu-latest
