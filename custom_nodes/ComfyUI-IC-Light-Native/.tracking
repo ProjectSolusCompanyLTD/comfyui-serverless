@@ -1,0 +1,16 @@
+ic_light_nodes.py
+README.md
+.gitignore
+__init__.py
+pyproject.toml
+convert_weights.py
+LICENSE
+.github/workflows/publish.yml
+.ruff_cache/.gitignore
+.ruff_cache/CACHEDIR.TAG
+.ruff_cache/0.8.4/16883728706437944629
+examples/ic_light_preserve_color.json
+examples/fg_bg_combine.json
+examples/fg.json
+examples/fg_lightmap.json
+examples/ic_light_detail_transfer.json
